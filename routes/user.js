@@ -12,4 +12,6 @@ router.post("/addFriend", userController.tokenMiddleware , userController.addFri
 
 router.delete("/delFriend/:id", userController.tokenMiddleware, userController.delFriend);
 
+router.put("/modUser", userController.tokenMiddleware, userController.modifyUserName);
+
 module.exports = router;

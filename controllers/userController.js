@@ -131,6 +131,8 @@ async function addFriend(req, res) { //Recibe user por POST y el token por heade
     }
 }
 
+//Apartir de aqui agregar verificacion de datos por request, borrar cuando se resuelva
+
 async function delFriend(req, res) {
     //No revisa si existe el usuario pues si se agrego de amigo existe
     try {
@@ -157,6 +159,32 @@ async function delFriend(req, res) {
         res.status(500).json({ error: error.message });
     }
 
+}
+
+async function modifyUserName(req,res){ //Recibe id, y nuevo user name Regresa message
+    try{//no revisa si existe pues se supone estas loggeado
+
+        let payload = decodeJWT(req.token) //decodifica token del req
+        let myId = payload.claims.id;
+        let newUserName = req.body.user;
+
+        await User.updateOne( //Actualiza mi nombre
+            {_id: myId},
+            {$set:{user:newUserName}}
+        )
+
+        await Friends.updateMany( //Actualiza nombre en las listas de amigos
+            {"friend.id":myId}, //si existe mi id en algun array de friends
+            {$set:{"friend.$.name":newUserName}} //modifica su campo name
+        )
+
+        res.status(201).json({
+            message: "Name Changed"
+        })
+
+    }catch(error){
+        res.status(500).json({ error: error.message });
+    }
 }
 
 function tokenMiddleware(req, res, next) { //Recibe el token por header, revisa que este bien y lo regresa en el req
@@ -187,5 +215,6 @@ module.exports = { //Hace visible las funciones en otros docs
     login,
     addFriend,
     delFriend,
+    modifyUserName,
     tokenMiddleware
 }
