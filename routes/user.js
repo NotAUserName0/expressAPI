@@ -10,4 +10,6 @@ router.post("/register", userController.register);
 
 router.post("/addFriend", userController.tokenMiddleware , userController.addFriend);
 
+router.delete("/delFriend/:id", userController.tokenMiddleware, userController.delFriend);
+
 module.exports = router;

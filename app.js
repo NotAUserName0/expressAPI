@@ -5,6 +5,8 @@
     npm i -g nodemon  
     npm install express mongoose
     npm i bcryptjs
+    npm install dotenv
+
     npm run devStart        
     
     en el package.json, dentro de scripts : "devStart": "nodemon app.js",
