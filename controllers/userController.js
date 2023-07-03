@@ -131,8 +131,6 @@ async function addFriend(req, res) { //Recibe user por POST y el token por heade
     }
 }
 
-//Apartir de aqui agregar verificacion de datos por request, borrar cuando se resuelva
-
 async function delFriend(req, res) {
     //No revisa si existe el usuario pues si se agrego de amigo existe
     try {
@@ -155,35 +153,89 @@ async function delFriend(req, res) {
         res.status(201).json({
             message: "Friend Deleted"
         })
+
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 
 }
 
-async function modifyUserName(req,res){ //Recibe id, y nuevo user name Regresa message
-    try{//no revisa si existe pues se supone estas loggeado
+async function modifyUserName(req, res) { //Recibe id, y nuevo user name Regresa message
+    try {//no revisa si existe pues se supone estas loggeado
+
+        if (req.body.user === undefined) {
+            res.status(500).json({ error: "User not submited" });
+        } else {
+            let payload = decodeJWT(req.token) //decodifica token del req
+            let myId = payload.claims.id;
+            let newUserName = req.body.user;
+
+            await User.updateOne( //Actualiza mi nombre
+                { _id: myId },
+                { $set: { user: newUserName } }
+            )
+
+            await Friends.updateMany( //Actualiza nombre en las listas de amigos
+                { "friend.id": myId }, //si existe mi id en algun array de friends
+                { $set: { "friend.$.name": newUserName } } //modifica su campo name
+            )
+
+            res.status(201).json({
+                message: "Name Changed"
+            })
+        }
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
+async function delUser(req,res){
+    try{
 
         let payload = decodeJWT(req.token) //decodifica token del req
         let myId = payload.claims.id;
-        let newUserName = req.body.user;
 
-        await User.updateOne( //Actualiza mi nombre
-            {_id: myId},
-            {$set:{user:newUserName}}
+        await Friends.updateMany( //elimina mi usr de la lista de amigos de todos los usuarios
+            {},
+            {$pull:{"friend":{id:myId}}}
         )
 
-        await Friends.updateMany( //Actualiza nombre en las listas de amigos
-            {"friend.id":myId}, //si existe mi id en algun array de friends
-            {$set:{"friend.$.name":newUserName}} //modifica su campo name
+        await Friends.deleteOne( //elimina mi lista de amigos 
+            {user:myId}
+        )
+
+        await User.deleteOne( //elimina usuario de la lista de user
+            {_id:myId}
         )
 
         res.status(201).json({
-            message: "Name Changed"
+            message: "User deleted succesfully"
         })
 
     }catch(error){
         res.status(500).json({ error: error.message });
+    }
+}
+
+async function loadUsers(req,res){ //carga los amigos del usuario loggeado
+    try{
+        let payload = decodeJWT(req.token) //decodifica token del req
+        let myId = payload.claims.id;
+
+        const entry = await Friends.find(
+            {user:myId},
+            {_id:0,user:0}
+        )
+
+        let friendList = entry[0]['friend']
+
+        res.status(201).json({
+            friendList
+        })
+
+    }catch(error){
+        res.status(500).json({ error: error.message });        
     }
 }
 
@@ -216,5 +268,7 @@ module.exports = { //Hace visible las funciones en otros docs
     addFriend,
     delFriend,
     modifyUserName,
+    delUser,
+    loadUsers,
     tokenMiddleware
 }
