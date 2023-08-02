@@ -245,6 +245,7 @@ async function modifyUserName(req, res) {
                 io.emit('reloadFriendList', () => {
                     console.log("modify user name")
                 })
+
                 res.status(201).json({
                     token: token
                 })
@@ -262,6 +263,11 @@ async function delUser(req, res) { //elimina usuario
 
         let payload = common.decodeJWT(req.token) //decodifica token del req
         let myId = payload.claims.id;
+        let myUser = payload.claims.user;
+
+        await Chat.deleteMany( //elimina todos los chats con mi user
+            {$or:[{userA:myUser},{userB:myUser}]}
+        )
 
         await Friends.updateMany( //elimina mi usr de la lista de amigos de todos los usuarios
             {},
@@ -275,6 +281,12 @@ async function delUser(req, res) { //elimina usuario
         await User.deleteOne( //elimina usuario de la lista de user
             { _id: myId }
         )
+
+        //Obtengo el dato io de Socket.io y emito un mensaje para actualizar la lista de amigos
+        const io = req.app.io
+        io.sockets.emit('reloadFriendList', () => {
+            console.log("Usuario eliminado, actualizando lista...")
+        })
 
         res.status(201).json({
             message: "User deleted succesfully"
